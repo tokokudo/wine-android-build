@@ -49,26 +49,31 @@ jobs:
           libpulse-dev
 
     - name: Install Android SDK + NDK
+    - name: Setup Android SDK
       shell: bash
       run: |
-        export ANDROID_HOME=$HOME/android-sdk
-        export ANDROID_SDK_ROOT=$ANDROID_HOME
-        mkdir -p $ANDROID_HOME/cmdline-tools
-        curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o tools.zip
-        unzip -q tools.zip
-        mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-        export SKIP_JDK_VERSION_CHECK=1
-        yes | sdkmanager --licenses
-        sdkmanager \
-          "platform-tools" \
-          "platforms;android-28" \
-          "build-tools;30.0.3" \
-          "ndk;23.2.8568313"
-        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.2.8568313" >> $GITHUB_ENV
-        echo "PATH=$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+       export ANDROID_HOME=$HOME/android-sdk
+       export ANDROID_SDK_ROOT=$ANDROID_HOME
+       mkdir -p $ANDROID_HOME/cmdline-tools
 
+       curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o tools.zip
+       unzip -q tools.zip
+       mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+       export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+       export SKIP_JDK_VERSION_CHECK=1
+
+       yes | sdkmanager --licenses || true
+
+       sdkmanager \
+      "platform-tools" \
+      "platforms;android-28" \
+      "build-tools;30.0.3" \
+      "ndk;23.2.8568313" || true
+
+    echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+    echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.2.8568313" >> $GITHUB_ENV
+    echo "PATH=$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
     - name: Build Wine Android APK
       shell: bash
       run: |
