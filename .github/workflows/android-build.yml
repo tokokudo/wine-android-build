@@ -65,7 +65,7 @@ jobs:
       shell: bash
       run: |
         chmod +x ./make
-        ./make $WINE_COMMIT $WINE_VERSION
+        ./make -h "$WINE_COMMIT" -w "$WINE_VERSION"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
