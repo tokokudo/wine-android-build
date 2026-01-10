@@ -12,6 +12,8 @@ jobs:
     env:
       WINE_COMMIT: "4336ed0b84b3dd3097bbbbf8e4b9de2e4d444ad7"
       WINE_VERSION: "6.4"
+      ANDROID_API: 28
+      NDK_VERSION: 23.2.8568313
 
     steps:
     - uses: actions/checkout@v4
@@ -21,7 +23,6 @@ jobs:
         distribution: temurin
         java-version: 17
 
-    
     - name: Install system dependencies
       shell: bash
       run: |
@@ -36,14 +37,14 @@ jobs:
           libxcomposite-dev libxdamage-dev libxfixes-dev \
           libgl1-mesa-dev libegl1-mesa-dev libpulse-dev
 
-    
     - name: Setup Android SDK + NDK
       shell: bash
       run: |
+        set -e
         export ANDROID_HOME=$HOME/android-sdk
         export ANDROID_SDK_ROOT=$ANDROID_HOME
-
         mkdir -p $ANDROID_HOME/cmdline-tools
+
         curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o tools.zip
         unzip -q tools.zip
         mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
@@ -51,47 +52,46 @@ jobs:
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
         export SKIP_JDK_VERSION_CHECK=1
 
-        yes | sdkmanager --licenses || true
+        yes | sdkmanager --licenses
 
         sdkmanager \
           "platform-tools" \
-          "platforms;android-28" \
+          "platforms;android-${ANDROID_API}" \
           "build-tools;30.0.3" \
-          "ndk;23.2.8568313"
+          "ndk;${NDK_VERSION}"
 
         echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.2.8568313" >> $GITHUB_ENV
-
-    
-    - name: Setup NDK toolchain env
-      shell: bash
-      run: |
-        export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
-
-        echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
-        echo "PATH=$TOOLCHAIN/bin:$PATH" >> $GITHUB_ENV
-
-        echo "CC=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
-        echo "CXX=$TOOLCHAIN/bin/aarch64-linux-android21-clang++" >> $GITHUB_ENV
-        echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
-        echo "LD=$TOOLCHAIN/bin/ld.lld" >> $GITHUB_ENV
-        echo "STRIP=$TOOLCHAIN/bin/llvm-strip" >> $GITHUB_ENV
-
+        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
+        echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
+        echo "PATH=$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
 
     - name: Build Wine Android APK
       shell: bash
       run: |
-        chmod +x ./make
-        ./make \
-          -h "$WINE_COMMIT" \
-          -w "$WINE_VERSION" \
-          -c "$CC" \
-          -x "$CXX"
+        set -e
 
+        export ANDROID_HOME=$HOME/android-sdk
+        export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}
+        export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+        export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
+        chmod +x ./make
+
+        ./make \
+          --tools \
+          --dlwine \
+          --nativewine \
+          --dlfreetype \
+          --freetype \
+          --androidwine \
+          --dlvwine \
+          --crimes \
+          -h "$WINE_COMMIT" \
+          -w "$WINE_VERSION"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: wine-android-apk
-        path: build/**/*.apk
+        path: |
+          build/**/*.apk
