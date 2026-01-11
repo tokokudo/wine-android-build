@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ubuntu:18.04
+      image: ubuntu:22.04
 
     env:
       WINE_COMMIT: "4336ed0b84b3dd3097bbbbf8e4b9de2e4d444ad7"
