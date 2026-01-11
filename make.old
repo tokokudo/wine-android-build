@@ -82,11 +82,6 @@ if [ ! -d wine ]; then
     mv wine-$WINE_COMMIT wine
     cp -r wine wine-native
 
-    echo "patching wine..."
-    patch -p1 -d wine < ../wine-android-configure.patch
-    patch -p1 -d wine < ../wine-android-makefile-in.patch
-    patch -p1 -d wine < ../wine-android-gradle.patch
-    patch -p1 -d wine < ../wine-gradle-properties.patch
 fi
 
 echo "building native wine (host tools)"
@@ -152,4 +147,4 @@ bash replaceclasses.sh wine-patched.apk fresh-build.jar org/winehq/wine > /dev/n
 rm fresh-build.jar
 
 echo "ALL DONE!"
-echo "APK: wine-patched.apk"
+echo "APK: wine-arm64-11.apk"
