@@ -8,35 +8,36 @@ WINE_BASE_APK_VERSION="7.0-rc6"
 export ANDROID_HOME="$(pwd)/android"
 export NDK_ROOT="$ANDROID_HOME/android-ndk-r17c"
 
-export ANDROID_API=21
+export TOOLCHAIN_VERSION="arm"
 export TOOLCHAIN_TRIPLE="arm-linux-androideabi"
+export ANDROID_API=21
 
-export CC=clang
-export CXX=clang++
+export ANDROID_CC=clang
+export ANDROID_CXX=clang++
 
 mkdir -p android
 cd android
 
 wget -nc https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
-unzip -qo commandlinetools-linux-7583922_latest.zip
+unzip -n commandlinetools-linux-7583922_latest.zip > /dev/null
 
 wget -nc https://dl.google.com/android/repository/android-ndk-r17c-linux-x86_64.zip
-unzip -qo android-ndk-r17c-linux-x86_64.zip
+unzip -n android-ndk-r17c-linux-x86_64.zip > /dev/null
 
 chmod +x cmdline-tools/bin/sdkmanager
 yes | cmdline-tools/bin/sdkmanager --sdk_root="$(pwd)" \
-  --install "platforms;android-25" "build-tools;27.0.3" "platform-tools" >/dev/null
-yes | cmdline-tools/bin/sdkmanager --sdk_root="$(pwd)" --licenses >/dev/null
+  --install "build-tools;27.0.3" "tools" "platforms;android-25" "platform-tools" > /dev/null
+yes | cmdline-tools/bin/sdkmanager --sdk_root="$(pwd)" --licenses > /dev/null
 
 cd ..
 
 wget -nc https://github.com/pxb1988/dex2jar/releases/download/v2.1/dex2jar-2.1.zip
-unzip -qo dex2jar-2.1.zip
+unzip -n dex2jar-2.1.zip > /dev/null
 
 mkdir -p apktool
 cd apktool
 wget -nc https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.6.0.jar -O apktool.jar
-wget -nc https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+wget -nc https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool -O apktool
 chmod +x apktool
 cd ..
 
@@ -46,18 +47,20 @@ mkdir -p build
 cd build
 
 $NDK_ROOT/build/tools/make-standalone-toolchain.sh \
+  --platform=android-$ANDROID_API \
   --arch=arm \
-  --platform=android-${ANDROID_API} \
   --install-dir=android-toolchain
 
 export PATH="$(pwd)/android-toolchain/bin:$PATH"
 
-wget -nc https://github.com/wine-mirror/wine/archive/${WINE_COMMIT}.zip -O wine.zip
-unzip -qo wine.zip
-mv wine-${WINE_COMMIT} wine
+wget -nc https://github.com/wine-mirror/wine/archive/$WINE_COMMIT.zip -O wine.zip
+unzip wine.zip
+mv wine-$WINE_COMMIT wine
 cp -r wine wine-native
 
 cd wine-native
+unset CC
+unset CXX
 ./configure --disable-win64
 make -j$(nproc)
 cd ..
@@ -67,13 +70,14 @@ tar xf freetype-2.11.1.tar.xz
 
 cd freetype-2.11.1
 ./configure \
-  --host=${TOOLCHAIN_TRIPLE} \
+  --host=$TOOLCHAIN_TRIPLE \
   --prefix="$(pwd)/output" \
   --without-zlib \
   --with-png=no \
   --with-brotli=no \
   --with-harfbuzz=no \
-  CC=$CC CXX=$CXX
+  CC=$ANDROID_CC \
+  CXX=$ANDROID_CXX
 make -j$(nproc)
 make install
 cd ..
@@ -82,10 +86,9 @@ export FREETYPE_CFLAGS="-I$(pwd)/freetype-2.11.1/output/include/freetype2"
 export FREETYPE_LIBS="-L$(pwd)/freetype-2.11.1/output/lib"
 
 cd wine
-autoreconf -fiv
 ./configure \
-  --host=${TOOLCHAIN_TRIPLE} \
-  host_alias=${TOOLCHAIN_TRIPLE} \
+  --host=$TOOLCHAIN_TRIPLE \
+  host_alias=$TOOLCHAIN_TRIPLE \
   --with-wine-tools=../wine-native \
   --prefix="$(pwd)/dlls/wineandroid.drv/assets" \
   --disable-win64 \
@@ -99,7 +102,10 @@ autoreconf -fiv
   --without-gphoto \
   --without-sane \
   --without-udev \
-  CC=$CC CXX=$CXX
+  CC=$ANDROID_CC \
+  CXX=$ANDROID_CXX
+
+autoreconf
 make -j$(nproc)
 make install
 
@@ -110,7 +116,7 @@ cd ../../../..
 
 cp wine-vanilla.apk wine-patched.apk
 bash gimmeapk .
-unzip -qo wine-debug.apk classes.dex
+unzip wine-debug.apk classes.dex
 dex-tools-2.1/d2j-dex2jar.sh -f -o fresh-build.jar classes.dex
 rm classes.dex
 bash replaceclasses.sh wine-patched.apk fresh-build.jar org/winehq/wine
