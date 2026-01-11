@@ -52,7 +52,7 @@ jobs:
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
         export SKIP_JDK_VERSION_CHECK=1
 
-        yes | sdkmanager --licenses || true
+        printf "y\n%.0s" {1..100} | sdkmanager --licenses
 
         sdkmanager \
           "platform-tools" \
