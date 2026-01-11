@@ -90,11 +90,6 @@ export FREETYPE_LIBS="-L$(pwd)/freetype-2.11.1/output/lib"
 cd wine
 ./configure \
   --host=$TOOLCHAIN_TRIPLE \
-  --with-wine-tools=../wine-native \
-  --prefix="$(pwd)/dlls/wineandroid.drv/assets" \
-  --disable-win64 \
-./configure \
-  --host=$TOOLCHAIN_TRIPLE \
   host_alias=$TOOLCHAIN_TRIPLE \
   --with-wine-tools=../wine-native \
   --prefix="$(pwd)/dlls/wineandroid.drv/assets" \
@@ -109,7 +104,7 @@ cd wine
   --without-gphoto \
   --without-sane \
   --without-udev \
-  CC=$C_COMPILER CXX=$CXX_COMPILER
+  CC=$C_COMPILER CXX=$CXX_COMPILER \
   CC=$C_COMPILER CXX=$CXX_COMPILER
 
 autoreconf
