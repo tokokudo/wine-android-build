@@ -93,6 +93,23 @@ cd wine
   --with-wine-tools=../wine-native \
   --prefix="$(pwd)/dlls/wineandroid.drv/assets" \
   --disable-win64 \
+./configure \
+  --host=$TOOLCHAIN_TRIPLE \
+  host_alias=$TOOLCHAIN_TRIPLE \
+  --with-wine-tools=../wine-native \
+  --prefix="$(pwd)/dlls/wineandroid.drv/assets" \
+  --disable-win64 \
+  --without-x \
+  --without-wayland \
+  --without-pulse \
+  --without-alsa \
+  --without-oss \
+  --without-capi \
+  --without-sdl \
+  --without-gphoto \
+  --without-sane \
+  --without-udev \
+  CC=$C_COMPILER CXX=$CXX_COMPILER
   CC=$C_COMPILER CXX=$CXX_COMPILER
 
 autoreconf
