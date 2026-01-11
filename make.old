@@ -6,8 +6,8 @@ set -e
 # ------------------------
 WINE_COMMIT="$1"
 WINE_VERSION="$2"
+WINE_BASE_APK_VERSION="7.0-rc6"
 
-# set up environment
 export ANDROID_HOME="$(pwd)/android"
 export NDK_ROOT="$ANDROID_HOME/android-ndk-r17c"
 
@@ -16,45 +16,29 @@ export TOOLCHAIN_VERSION="arm"
 export TOOLCHAIN_TRIPLE="arm-linux-androideabi"
 export ANDROID_API=21
 
-# compilers
-if [ "$3" ]; then
-    export C_COMPILER="$3"
-else
-    export C_COMPILER=clang
-fi
+export C_COMPILER=clang
+export CXX_COMPILER=clang++
 
-if [ "$4" ]; then
-    export CXX_COMPILER="$4"
-else
-    export CXX_COMPILER=clang++
-fi
-
+# ------------------------
 mkdir -p android
 cd android
 
-echo "downloading and setting up sdks"
-
-echo "downloading cmdline tools..."
 wget -nc https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
 unzip -n commandlinetools-linux-7583922_latest.zip > /dev/null
 
-echo "downloading ndk r17c..."
 wget -nc https://dl.google.com/android/repository/android-ndk-r17c-linux-x86_64.zip
 unzip -n android-ndk-r17c-linux-x86_64.zip > /dev/null
 
-echo "installing sdk packages..."
 chmod +x cmdline-tools/bin/sdkmanager
 yes | cmdline-tools/bin/sdkmanager --sdk_root="$(pwd)" \
   --install "build-tools;27.0.3" "tools" "platforms;android-25" "platform-tools" > /dev/null
 yes | cmdline-tools/bin/sdkmanager --sdk_root="$(pwd)" --licenses > /dev/null
-
 cd ..
 
-echo "setting up dex2jar..."
+# ------------------------
 wget -nc https://github.com/pxb1988/dex2jar/releases/download/v2.1/dex2jar-2.1.zip
 unzip -n dex2jar-2.1.zip > /dev/null
 
-echo "setting up apktool..."
 mkdir -p apktool
 cd apktool
 wget -nc https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.6.0.jar -O apktool.jar
@@ -62,89 +46,73 @@ wget -nc https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/li
 chmod +x apktool
 cd ..
 
-echo "downloading vanilla wine ARM apk..."
-wget -nc https://dl.winehq.org/wine-builds/android/wine-$WINE_VERSION-arm.apk -O wine-vanilla.apk
+# ------------------------
+echo "Downloading base APK (Wine $WINE_BASE_APK_VERSION ARM)..."
+wget -nc https://dl.winehq.org/wine-builds/android/wine-${WINE_BASE_APK_VERSION}-arm.apk -O wine-vanilla.apk
 
 mkdir -p build
 cd build
 
-echo "setting up standalone toolchain (ARMv7)..."
 $NDK_ROOT/build/tools/make-standalone-toolchain.sh \
   --platform=android-$ANDROID_API \
   --arch=arm \
-  --install-dir=android-toolchain \
-  --verbose
-
-if [ ! -d wine ]; then
-    echo "downloading wine source..."
-    wget -nc https://github.com/wine-mirror/wine/archive/$WINE_COMMIT.zip -O wine.zip
-    unzip wine.zip
-    mv wine-$WINE_COMMIT wine
-    cp -r wine wine-native
-
-fi
-
-echo "building native wine (host tools)"
-cd wine-native
-./configure --disable-win64 > /dev/null
-make -j$(nproc) > /dev/null
-cd ..
+  --install-dir=android-toolchain
 
 export PATH="$(pwd)/android-toolchain/bin:$PATH"
 
-echo "downloading freetype..."
+# ------------------------
+wget -nc https://github.com/wine-mirror/wine/archive/$WINE_COMMIT.zip -O wine.zip
+unzip wine.zip
+mv wine-$WINE_COMMIT wine
+cp -r wine wine-native
+
+cd wine-native
+./configure --disable-win64
+make -j$(nproc)
+cd ..
+
+# ------------------------
 wget -nc https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
 tar xf freetype-2.11.1.tar.xz
 
-echo "building freetype for ARMv7"
 cd freetype-2.11.1
-./configure \
-  --host=$TOOLCHAIN_TRIPLE \
-  --prefix="$(pwd)/output" \
-  --without-zlib \
-  --with-png=no \
-  --with-brotli=no \
-  --with-harfbuzz=no \
-  CC=$C_COMPILER CXX=$CXX_COMPILER > /dev/null
-
-make -j$(nproc) > /dev/null
-make install > /dev/null
-
-export FREETYPE_CFLAGS="-I$(pwd)/output/include/freetype2"
-export FREETYPE_LIBS="-L$(pwd)/output/lib"
+./configure --host=$TOOLCHAIN_TRIPLE --prefix="$(pwd)/output" \
+  --without-zlib --with-png=no --with-brotli=no --with-harfbuzz=no \
+  CC=$C_COMPILER CXX=$CXX_COMPILER
+make -j$(nproc)
+make install
 cd ..
 
-echo "building wine for android (ARMv7)"
+export FREETYPE_CFLAGS="-I$(pwd)/freetype-2.11.1/output/include/freetype2"
+export FREETYPE_LIBS="-L$(pwd)/freetype-2.11.1/output/lib"
+
+# ------------------------
 cd wine
 ./configure \
   --host=$TOOLCHAIN_TRIPLE \
-  host_alias=$TOOLCHAIN_TRIPLE \
   --with-wine-tools=../wine-native \
   --prefix="$(pwd)/dlls/wineandroid.drv/assets" \
   --disable-win64 \
-  CC=$C_COMPILER CXX=$CXX_COMPILER > /dev/null
+  CC=$C_COMPILER CXX=$CXX_COMPILER
 
 autoreconf
-make -j$(nproc) > /dev/null
-make install > /dev/null
-
-echo "fixing apk..."
-cp ../freetype-2.11.1/output/lib/libfreetype.so \
-  dlls/wineandroid.drv/assets/armeabi-v7a/lib/
+make -j$(nproc)
+make install
 
 cd dlls/wineandroid.drv
-make clean > /dev/null
-make > /dev/null
+make clean
+make
 cd ../../../..
 
-echo "committing crimes..."
+# ------------------------
+echo "Injecting Wine 11 ARM libs into APK..."
 cp wine-vanilla.apk wine-patched.apk
 bash gimmeapk .
-unzip wine-debug.apk classes.dex > /dev/null
-dex-tools-2.1/d2j-dex2jar.sh -f -o fresh-build.jar classes.dex > /dev/null
+unzip wine-debug.apk classes.dex
+dex-tools-2.1/d2j-dex2jar.sh -f -o fresh-build.jar classes.dex
 rm classes.dex
-bash replaceclasses.sh wine-patched.apk fresh-build.jar org/winehq/wine > /dev/null
+bash replaceclasses.sh wine-patched.apk fresh-build.jar org/winehq/wine
 rm fresh-build.jar
 
-echo "ALL DONE!"
-echo "APK: wine-arm64-11.apk"
+echo "DONE!"
+echo "APK: wine-patched.apk"
