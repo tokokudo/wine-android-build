@@ -24,7 +24,7 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
             git ruby ruby-dev python2 gradle rsync curl unzip \
             build-essential gcc-multilib g++-multilib libc6-dev-i386 \
-            pkg-config autoconf automake libtool binutils \
+            pkg-config autoconf automake libtool binutils wget \
             libx11-dev libfreetype6-dev libfontconfig1-dev \
             libxinerama-dev libxcursor-dev libxi-dev libxrandr-dev \
             libxcomposite-dev libxdamage-dev libxfixes-dev \
