@@ -58,7 +58,7 @@ unset CXX
   --without-alsa \
   --without-pulse \
   --without-oss \
-  --without-sdl
+  --without-sdl \
   --without-freetype
 make -j$(nproc)
 cd ..
