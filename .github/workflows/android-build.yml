@@ -31,7 +31,7 @@ jobs:
             libgl1-mesa-dev libegl1-mesa-dev libpulse-dev \
             openjdk-11-jdk \
             ca-certificates patch file
-            sudo ln -sf /usr/bin/python2 /usr/bin/python
+            ln -sf /usr/bin/python2 /usr/bin/python
 
       - name: Checkout repository
         uses: actions/checkout@v4
