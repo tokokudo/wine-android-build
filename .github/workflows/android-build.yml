@@ -13,8 +13,8 @@ jobs:
       image: ubuntu:22.04
 
     env:
-      WINE_COMMIT: "4336ed0b84b3dd3097bbbbf8e4b9de2e4d444ad7"
-      WINE_VERSION: "6.4"
+      WINE_COMMIT: "b3319fa671a1f9f7b7aa09e9d9016b250cb848cb"
+      WINE_VERSION: "11.0-rc5"
 
     steps:
       - name: Install system dependencies
