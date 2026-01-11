@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     container:
       image: ubuntu:22.04
@@ -15,26 +15,22 @@ jobs:
     env:
       WINE_COMMIT: "4336ed0b84b3dd3097bbbbf8e4b9de2e4d444ad7"
       WINE_VERSION: "6.4"
-      
+
     steps:
-      - name: Install dependencies
+      - name: Install system dependencies
+        shell: bash
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            build-essential \
-            wget \
-            unzip \
-            zip \
-            git \
-            patch \
-            ca-certificates \
-            python \
-            openjdk-8-jdk \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            file
+            git ruby ruby-dev python2 gradle rsync curl unzip \
+            build-essential gcc-multilib g++-multilib libc6-dev-i386 \
+            pkg-config autoconf automake libtool binutils \
+            libx11-dev libfreetype6-dev libfontconfig1-dev \
+            libxinerama-dev libxcursor-dev libxi-dev libxrandr-dev \
+            libxcomposite-dev libxdamage-dev libxfixes-dev \
+            libgl1-mesa-dev libegl1-mesa-dev libpulse-dev \
+            openjdk-11-jdk \
+            ca-certificates patch file
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,6 +39,7 @@ jobs:
         run: chmod +x make.old
 
       - name: Build Wine Android
+        shell: bash
         run: |
           ./make.old "$WINE_COMMIT" "$WINE_VERSION"
 
@@ -50,4 +47,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wine-android-apk
-          path: wine-patched.apk
+          path: |
+            wine-patched.apk
+            wine-debug.apk
