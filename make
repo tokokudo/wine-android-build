@@ -210,8 +210,8 @@ if options[:tools]
         `unzip -n commandlinetools-linux-7583922_latest.zip > /dev/null`
 
         puts "    -> NDK".green.reverse_color
-        `wget -nc https://dl.google.com/android/repository/android-ndk-r17c-linux-x86_64.zip  > /dev/null`
-        `unzip -n android-ndk-r17c-linux-x86_64.zip > /dev/null`
+        `wget -nc https://dl.google.com/android/repository/android-ndk-r26b-linux.zip > /dev/null`
+        `unzip -n android-ndk-r26b-linux.zip > /dev/null`
 
         puts "    -> Installing required packages/accepting licenses".green.reverse_color
         `chmod +x cmdline-tools/bin/sdkmanager`
@@ -234,16 +234,11 @@ end
 
 # initial env setup
 ENV["ANDROID_HOME"] = "%s/android/" % [Dir.pwd]
-ENV["NDK_ROOT"] = "%s/android/android-ndk-r17c/" % [Dir.pwd]
+ENV["NDK_ROOT"] = "%s/android/android-ndk-r26b/"
 ENV["TOOLCHAIN_VERSION"] = "x86_64"
 ENV["TOOLCHAIN_TRIPLE"] = "x86_64-linux-android"
 
 FileUtils.mkdir_p "build"
-
-Dir.chdir("build") do
-    if options[:androidwine] or options[:freetype]
-        `$NDK_ROOT/build/tools/make-standalone-toolchain.sh --platform=android-26 --install-dir=android-toolchain --arch=$TOOLCHAIN_VERSION --verbose`
-    end
 
     if options[:dlwine]
         puts " -> Downloading Wine source...".blue.reverse_color
