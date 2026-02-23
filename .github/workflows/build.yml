@@ -1,69 +1,59 @@
-name: Build Wine Android ARM64
+name: Build Wine Android
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      NDK_VERSION: r25c
-      NDK_URL: https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
-      NDK_DIR: ${{ github.workspace }}/android-ndk
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
-          sudo dpkg --add-architecture i386
           sudo apt update
           sudo apt install -y \
             build-essential \
-            git \
-            wget \
-            unzip \
             autoconf \
             automake \
             libtool \
             pkg-config \
-            flex \
-            bison \
-            gcc-multilib \
-            g++-multilib \
-            libc6-dev-i386 \
+            git \
+            wget \
+            unzip \
+            zip \
+            openjdk-11-jdk \
             ruby \
-            python3
+            patch
 
-      - name: Download Android NDK
-        run: |
-          wget -O ndk.zip $NDK_URL
-          unzip ndk.zip
-          mv android-ndk-* android-ndk
-
-      - name: Export NDK environment
-        run: |
-          echo "NDK_ROOT=${{ env.NDK_DIR }}" >> $GITHUB_ENV
-          echo "${{ env.NDK_DIR }}/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
+      - name: Show Ruby version
+        run: ruby -v
 
       - name: Make script executable
-        run: |
-          chmod +x make || true
+        run: chmod +x make
 
-      - name: Run build script
+      - name: Run Wine Android build
         run: |
-            ./make
+          ./make \
+            -h wine-9.0 \
+            -w 9.0 \
+            --tools \
+            --nativewine \
+            --dlfreetype \
+            --freetype \
+            --androidwine \
+            --crimes
 
-      - name: Compress build output
+      - name: Zip output
         run: |
-          tar -czf wine-android-arm64.tar.gz build/
+          mkdir output
+          cp *.apk output/ || true
+          zip -r wine-android-build.zip output/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: wine-android-arm64
-          path: wine-android-arm64.tar.gz
+          name: wine-android-build
+          path: wine-android-build.zip
